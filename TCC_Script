@@ -1,14 +1,19 @@
 !pip install geopandas
+#TIM
 import geopandas as gpd
 import pandas as pd
 import os
 
+# ----------------------------
 # Caminhos de arquivos
-shp_path = r"C:\Users\F8062053\Downloads\QGIS\TCC\Predicoes\4G_110dbm\4G_TIM_dbm.shp"
-geojson_path = r"C:\Users\F8062053\Downloads\QGIS\TCC\Predicoes\4G_110dbm\saida.geojson"
-csv_path = r"C:\Users\F8062053\Downloads\QGIS\TCC\Predicoes\4G_110dbm\saida.csv"
+# ----------------------------
+shp_path = r"C:\Users\F8062053\Downloads\QGIS\TCC\Predicoes\4G_110dbm\TIM\4G_TIM_dbm.shp"
+geojson_path = r"C:\Users\F8062053\Downloads\QGIS\TCC\Predicoes\4G_110dbm\TIM\saida.geojson"
+csv_path = r"C:\Users\F8062053\Downloads\QGIS\TCC\Predicoes\4G_110dbm\TIM\saida.csv"
 
-# Ler shapefile
+# ----------------------------
+# 1. Ler shapefile
+# ----------------------------
 gdf = gpd.read_file(shp_path)
 print("Shapefile carregado com sucesso!")
 print("Primeiras linhas:")
@@ -16,24 +21,35 @@ print(gdf.head())
 print("\nSistema de coordenadas (CRS):", gdf.crs)
 print("Colunas disponíveis:", gdf.columns)
 
-# Salvar como GeoJSON
+# ----------------------------
+# 2. Salvar como GeoJSON
+# ----------------------------
 gdf.to_file(geojson_path, driver="GeoJSON")
 print(f"\nGeoJSON salvo com sucesso em:\n{geojson_path}")
 
+# -------------------------
 # Caminhos dos arquivos
-json_path = r"C:\Users\F8062053\Downloads\QGIS\TCC\Predicoes\4G_110dbm\saida.geojson"
-test_csv = r"C:\Users\F8062053\Downloads\QGIS\TCC\Predicoes\4G_110dbm\Locais.csv"
-output_gpkg = r"C:\Users\F8062053\Downloads\QGIS\TCC\Predicoes\4G_110dbm\resultado.gpkg"
+# -------------------------
+json_path = r"C:\Users\F8062053\Downloads\QGIS\TCC\Predicoes\4G_110dbm\TIM\saida.geojson"
+test_csv = r"C:\Users\F8062053\Downloads\QGIS\TCC\Predicoes\4G_110dbm\TIM\Locais.csv"
+output_gpkg = r"C:\Users\F8062053\Downloads\QGIS\TCC\Predicoes\4G_110dbm\TIM\resultado.gpkg"
 
+# -------------------------
 # Permitir GeoJSON grande
+# -------------------------
 os.environ['OGR_GEOJSON_MAX_OBJ_SIZE'] = '0'  # Remove limite de tamanho de objeto
 
+# -------------------------
 # Ler GeoJSON (polígonos)
+# -------------------------
 gdf_polygons = gpd.read_file(json_path)
 print("Polígonos carregados. Colunas:", gdf_polygons.columns.tolist())
 print("Número de polígonos:", len(gdf_polygons))
 
-# Ler CSV de pontos e definir separador correto e encoding
+# -------------------------
+# 4 Ler CSV de pontos
+# -------------------------
+# Definir separador correto e encoding
 df_points = pd.read_csv(test_csv, sep=';', encoding='utf-8')
 
 # Converter vírgula para ponto se houver decimal com vírgula
@@ -44,14 +60,18 @@ for col in ['latitude', 'longitude']:
 if 'longitude' not in df_points.columns or 'latitude' not in df_points.columns:
     raise ValueError("O CSV de pontos precisa ter as colunas 'longitude' e 'latitude'.")
 
+# -------------------------
 # Criar GeoDataFrame de pontos
+# -------------------------
 gdf_points = gpd.GeoDataFrame(
     df_points,
     geometry=gpd.points_from_xy(df_points['longitude'], df_points['latitude']),
     crs=gdf_polygons.crs  # usar mesmo CRS dos polígonos
 )
 
+# -------------------------
 # Verificar pontos dentro dos polígonos
+# -------------------------
 gdf_result = gpd.sjoin(
     gdf_points,
     gdf_polygons,
@@ -65,25 +85,284 @@ gdf_result['Dentro_do_Poligono'] = ~gdf_result['index_right'].isna()
 # Remover coluna auxiliar do join
 gdf_result = gdf_result.drop(columns=['index_right'])
 
+# -------------------------
 # Salvar como GeoPackage
+# -------------------------
 gdf_result.to_file(output_gpkg, driver="GPKG")
 print(f"GeoPackage salvo em: {output_gpkg}")
 
+# -------------------------
 # Caminhos dos arquivos
-input_gpkg = r"C:\Users\F8062053\Downloads\QGIS\TCC\Predicoes\4G_110dbm\resultado.gpkg"
-output_csv = r"C:\Users\F8062053\Downloads\QGIS\TCC\Predicoes\4G_110dbm\resultado.csv"
+# -------------------------
+input_gpkg = r"C:\Users\F8062053\Downloads\QGIS\TCC\Predicoes\4G_110dbm\TIM\resultado.gpkg"
+output_csv = r"C:\Users\F8062053\Downloads\QGIS\TCC\Predicoes\4G_110dbm\TIM\resultado.csv"
 
+# -------------------------
 # Ler GeoPackage
+# -------------------------
 gdf = gpd.read_file(input_gpkg)
 print("GeoPackage carregado. Colunas:", gdf.columns.tolist())
 print("Número de pontos:", len(gdf))
 
+# -------------------------
 # Extrair coordenadas X/Y se ainda não estiverem
+# -------------------------
 if 'longitude' not in gdf.columns or 'latitude' not in gdf.columns:
     gdf['longitude'] = gdf.geometry.x
     gdf['latitude'] = gdf.geometry.y
 
-# Selecionar colunas relevantes. Manter atributos originais + latitude, longitude + indicador
+# -------------------------
+# Selecionar colunas relevantes
+# -------------------------
+# Mantemos atributos originais + latitude, longitude + indicador
+cols_to_keep = [col for col in gdf.columns if col != 'geometry']
+df = gdf[cols_to_keep]
+
+# -------------------------
+# Salvar como CSV
+# -------------------------
+df.to_csv(output_csv, index=False, sep=';')
+print(f"CSV com pontos dentro/fora do polígono salvo em:\n{output_csv}")
+#CLARO
+import geopandas as gpd
+import pandas as pd
+import os
+
+# ----------------------------
+# Caminhos de arquivos
+# ----------------------------
+shp_path = r"C:\Users\F8062053\Downloads\QGIS\TCC\Predicoes\4G_110dbm\CLARO\4G_CLARO_dbm.shp"
+geojson_path = r"C:\Users\F8062053\Downloads\QGIS\TCC\Predicoes\4G_110dbm\CLARO\saida.geojson"
+csv_path = r"C:\Users\F8062053\Downloads\QGIS\TCC\Predicoes\4G_110dbm\CLARO\saida.csv"
+
+# ----------------------------
+# 1. Ler shapefile
+# ----------------------------
+gdf = gpd.read_file(shp_path)
+print("Shapefile carregado com sucesso!")
+print("Primeiras linhas:")
+print(gdf.head())
+print("\nSistema de coordenadas (CRS):", gdf.crs)
+print("Colunas disponíveis:", gdf.columns)
+
+# ----------------------------
+# 2. Salvar como GeoJSON
+# ----------------------------
+gdf.to_file(geojson_path, driver="GeoJSON")
+print(f"\nGeoJSON salvo com sucesso em:\n{geojson_path}")
+
+# -------------------------
+# Caminhos dos arquivos
+# -------------------------
+json_path = r"C:\Users\F8062053\Downloads\QGIS\TCC\Predicoes\4G_110dbm\CLARO\saida.geojson"
+test_csv = r"C:\Users\F8062053\Downloads\QGIS\TCC\Predicoes\4G_110dbm\CLARO\Locais.csv"
+output_gpkg = r"C:\Users\F8062053\Downloads\QGIS\TCC\Predicoes\4G_110dbm\CLARO\resultado.gpkg"
+
+# -------------------------
+# Permitir GeoJSON grande
+# -------------------------
+os.environ['OGR_GEOJSON_MAX_OBJ_SIZE'] = '0'  # Remove limite de tamanho de objeto
+
+# -------------------------
+# Ler GeoJSON (polígonos)
+# -------------------------
+gdf_polygons = gpd.read_file(json_path)
+print("Polígonos carregados. Colunas:", gdf_polygons.columns.tolist())
+print("Número de polígonos:", len(gdf_polygons))
+
+# -------------------------
+# 4 Ler CSV de pontos
+# -------------------------
+# Definir separador correto e encoding
+df_points = pd.read_csv(test_csv, sep=';', encoding='utf-8')
+
+# Converter vírgula para ponto se houver decimal com vírgula
+for col in ['latitude', 'longitude']:
+    df_points[col] = df_points[col].astype(str).str.replace(',', '.').astype(float)
+
+# Verificar se as colunas existem
+if 'longitude' not in df_points.columns or 'latitude' not in df_points.columns:
+    raise ValueError("O CSV de pontos precisa ter as colunas 'longitude' e 'latitude'.")
+
+# -------------------------
+# Criar GeoDataFrame de pontos
+# -------------------------
+gdf_points = gpd.GeoDataFrame(
+    df_points,
+    geometry=gpd.points_from_xy(df_points['longitude'], df_points['latitude']),
+    crs=gdf_polygons.crs  # usar mesmo CRS dos polígonos
+)
+
+# -------------------------
+# Verificar pontos dentro dos polígonos
+# -------------------------
+gdf_result = gpd.sjoin(
+    gdf_points,
+    gdf_polygons,
+    how='left',             # mantém todos os pontos
+    predicate='within'      # verifica se o ponto está dentro do polígono
+)
+
+# Criar coluna indicando se está dentro ou fora
+gdf_result['Dentro_do_Poligono'] = ~gdf_result['index_right'].isna()
+
+# Remover coluna auxiliar do join
+gdf_result = gdf_result.drop(columns=['index_right'])
+
+# -------------------------
+# Salvar como GeoPackage
+# -------------------------
+gdf_result.to_file(output_gpkg, driver="GPKG")
+print(f"GeoPackage salvo em: {output_gpkg}")
+
+# -------------------------
+# Caminhos dos arquivos
+# -------------------------
+input_gpkg = r"C:\Users\F8062053\Downloads\QGIS\TCC\Predicoes\4G_110dbm\CLARO\resultado.gpkg"
+output_csv = r"C:\Users\F8062053\Downloads\QGIS\TCC\Predicoes\4G_110dbm\CLARO\resultado.csv"
+
+# -------------------------
+# Ler GeoPackage
+# -------------------------
+gdf = gpd.read_file(input_gpkg)
+print("GeoPackage carregado. Colunas:", gdf.columns.tolist())
+print("Número de pontos:", len(gdf))
+
+# -------------------------
+# Extrair coordenadas X/Y se ainda não estiverem
+# -------------------------
+if 'longitude' not in gdf.columns or 'latitude' not in gdf.columns:
+    gdf['longitude'] = gdf.geometry.x
+    gdf['latitude'] = gdf.geometry.y
+
+# -------------------------
+# Selecionar colunas relevantes
+# -------------------------
+# Mantemos atributos originais + latitude, longitude + indicador
+cols_to_keep = [col for col in gdf.columns if col != 'geometry']
+df = gdf[cols_to_keep]
+
+# -------------------------
+# Salvar como CSV
+# -------------------------
+df.to_csv(output_csv, index=False, sep=';')
+print(f"CSV com pontos dentro/fora do polígono salvo em:\n{output_csv}")
+#VIVO
+import geopandas as gpd
+import pandas as pd
+import os
+
+# ----------------------------
+# Caminhos de arquivos
+# ----------------------------
+shp_path = r"C:\Users\F8062053\Downloads\QGIS\TCC\Predicoes\4G_110dbm\VIVO\4G_VIVO_dbm.shp"
+geojson_path = r"C:\Users\F8062053\Downloads\QGIS\TCC\Predicoes\4G_110dbm\VIVO\saida.geojson"
+csv_path = r"C:\Users\F8062053\Downloads\QGIS\TCC\Predicoes\4G_110dbm\VIVO\saida.csv"
+
+# ----------------------------
+# 1. Ler shapefile
+# ----------------------------
+gdf = gpd.read_file(shp_path)
+print("Shapefile carregado com sucesso!")
+print("Primeiras linhas:")
+print(gdf.head())
+print("\nSistema de coordenadas (CRS):", gdf.crs)
+print("Colunas disponíveis:", gdf.columns)
+
+# ----------------------------
+# 2. Salvar como GeoJSON
+# ----------------------------
+gdf.to_file(geojson_path, driver="GeoJSON")
+print(f"\nGeoJSON salvo com sucesso em:\n{geojson_path}")
+
+# -------------------------
+# Caminhos dos arquivos
+# -------------------------
+json_path = r"C:\Users\F8062053\Downloads\QGIS\TCC\Predicoes\4G_110dbm\VIVO\saida.geojson"
+test_csv = r"C:\Users\F8062053\Downloads\QGIS\TCC\Predicoes\4G_110dbm\VIVO\Locais.csv"
+output_gpkg = r"C:\Users\F8062053\Downloads\QGIS\TCC\Predicoes\4G_110dbm\VIVO\resultado.gpkg"
+
+# -------------------------
+# Permitir GeoJSON grande
+# -------------------------
+os.environ['OGR_GEOJSON_MAX_OBJ_SIZE'] = '0'  # Remove limite de tamanho de objeto
+
+# -------------------------
+# Ler GeoJSON (polígonos)
+# -------------------------
+gdf_polygons = gpd.read_file(json_path)
+print("Polígonos carregados. Colunas:", gdf_polygons.columns.tolist())
+print("Número de polígonos:", len(gdf_polygons))
+
+# -------------------------
+# 4 Ler CSV de pontos
+# -------------------------
+# Definir separador correto e encoding
+df_points = pd.read_csv(test_csv, sep=';', encoding='utf-8')
+
+# Converter vírgula para ponto se houver decimal com vírgula
+for col in ['latitude', 'longitude']:
+    df_points[col] = df_points[col].astype(str).str.replace(',', '.').astype(float)
+
+# Verificar se as colunas existem
+if 'longitude' not in df_points.columns or 'latitude' not in df_points.columns:
+    raise ValueError("O CSV de pontos precisa ter as colunas 'longitude' e 'latitude'.")
+
+# -------------------------
+# Criar GeoDataFrame de pontos
+# -------------------------
+gdf_points = gpd.GeoDataFrame(
+    df_points,
+    geometry=gpd.points_from_xy(df_points['longitude'], df_points['latitude']),
+    crs=gdf_polygons.crs  # usar mesmo CRS dos polígonos
+)
+
+# -------------------------
+# Verificar pontos dentro dos polígonos
+# -------------------------
+gdf_result = gpd.sjoin(
+    gdf_points,
+    gdf_polygons,
+    how='left',             # mantém todos os pontos
+    predicate='within'      # verifica se o ponto está dentro do polígono
+)
+
+# Criar coluna indicando se está dentro ou fora
+gdf_result['Dentro_do_Poligono'] = ~gdf_result['index_right'].isna()
+
+# Remover coluna auxiliar do join
+gdf_result = gdf_result.drop(columns=['index_right'])
+
+# -------------------------
+# Salvar como GeoPackage
+# -------------------------
+gdf_result.to_file(output_gpkg, driver="GPKG")
+print(f"GeoPackage salvo em: {output_gpkg}")
+
+# -------------------------
+# Caminhos dos arquivos
+# -------------------------
+input_gpkg = r"C:\Users\F8062053\Downloads\QGIS\TCC\Predicoes\4G_110dbm\VIVO\resultado.gpkg"
+output_csv = r"C:\Users\F8062053\Downloads\QGIS\TCC\Predicoes\4G_110dbm\VIVO\resultado.csv"
+
+# -------------------------
+# Ler GeoPackage
+# -------------------------
+gdf = gpd.read_file(input_gpkg)
+print("GeoPackage carregado. Colunas:", gdf.columns.tolist())
+print("Número de pontos:", len(gdf))
+
+# -------------------------
+# Extrair coordenadas X/Y se ainda não estiverem
+# -------------------------
+if 'longitude' not in gdf.columns or 'latitude' not in gdf.columns:
+    gdf['longitude'] = gdf.geometry.x
+    gdf['latitude'] = gdf.geometry.y
+
+# -------------------------
+# Selecionar colunas relevantes
+# -------------------------
+# Mantemos atributos originais + latitude, longitude + indicador
 cols_to_keep = [col for col in gdf.columns if col != 'geometry']
 df = gdf[cols_to_keep]
 
