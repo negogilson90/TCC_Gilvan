@@ -1,0 +1,21 @@
+APÊNDICES DO TCC
+
+Autor:
+Gilvan Carvalho Cunha
+
+Conteúdo:
+
+Quadro_01_Pontos_Turisticos_Bahia.xlsx
+Lista completa dos pontos turísticos utilizados na pesquisa,
+incluindo município, latitude e longitude.
+
+Quadro_02_Cobertura_4G_Pontos_Turisticos.xlsx
+Resultado do cruzamento espacial dos pontos turísticos com
+as áreas de cobertura 4G das operadoras TIM, Claro e Vivo.
+
+Quadro_03_Cobertura_5G_Pontos_Turisticos.xlsx
+Resultado do cruzamento espacial dos pontos turísticos com
+as áreas de cobertura 5G das operadoras TIM, Claro e Vivo.
+
+Repository:
+https://github.com/negogilson90/TCC_Gilvan
